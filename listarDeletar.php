@@ -1,77 +1,148 @@
 <?php
-require_once 'controllers/Controller.php';
-
+require_once __DIR__ . '/../controllers/Controller.php'; // Ajuste no caminho
 $controller = new Controller();
 
-$rota = $_GET['rota'] ?? 'listar'; // Se não tiver definida, define com a rota padrão
-
-// Processa requisições POST
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    if ($rota == 'cadastrar') {
-        $controller->cadastrar($_POST);
-    }elseif($rota == 'atualizar'){
-        $controller->atualizar();
-    }
-    exit;
-}
-
-// Processa requisições GET
-switch($rota) {
-    case 'cadastrar':
-        require_once 'views/estudanteCadastro.php';
-        break;
-    case 'deletar':
-        require_once 'views/listarDeletar.php';
-        break;
-    case 'atualizar':
-        require_once 'views/listarAtualizar.php';
-        break; 
-    case 'formAtualizar': 
-        require_once 'views/formAtualizar.php';
-        break; 
-    case 'confirmarDeletar':
-        $controller->deletar(); // Aqui deletamos o estudante
-        exit; // Evita que carregue outros arquivos após a execução
-    case 'listar':
-    default:
-        require_once 'views/listarEstudantes.php';
-        break;
-    // No switch case, modifique o caso 'deletar':
-    case 'deletar':
-        require_once 'views/listarDeletar.php';
-        break;   
-    // Adicione este caso no switch existente
-case 'buscar_ajax':
-    header('Content-Type: application/json');
+// Verifica se é AJAX
+if(isset($_GET['ajax_search'])) {
     try {
-        $nomePesquisa = $_GET['nome'] ?? '';
+        $nomePesquisa = $_POST['nome'] ?? '';
         $estudantes = $controller->buscarPorNome($nomePesquisa);
         
-        $html = '';
-        if (!empty($estudantes)) {
-            $html .= '<table border="1"><tr><th>Matrícula</th><th>Nome</th><th>Curso</th><th>Ano Ingresso</th><th>Ações</th></tr>';
-            foreach ($estudantes as $estudante) {
-                $html .= sprintf(
-                    '<tr>
-                        <td>%s</td><td>%s</td><td>%s</td><td>%s</td>
-                        <td><a href="router.php?rota=confirmarDeletar&matricula=%s" onclick="return confirm(\'Tem certeza?\')">Excluir</a></td>
-                    </tr>',
-                    htmlspecialchars($estudante->matricula),
-                    htmlspecialchars($estudante->nome),
-                    htmlspecialchars($estudante->curso),
-                    htmlspecialchars($estudante->ano_ingresso),
-                    $estudante->matricula
-                );
-            }
-            $html .= '</table>';
-        } else {
-            $html = '<p>'.($nomePesquisa ? 'Nenhum estudante encontrado.' : 'Nenhum estudante cadastrado.').'</p>';
-        }
+        ob_start();
+        if (!empty($estudantes)): ?>
+            <table border="1">
+                <tr>
+                    <th>Matrícula</th>
+                    <th>Nome</th>
+                    <th>Curso</th>
+                    <th>Ano de Ingresso</th>
+                    <th>Ações</th>
+                </tr>
+                <?php foreach ($estudantes as $estudante): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($estudante->matricula) ?></td>
+                        <td><?= htmlspecialchars($estudante->nome) ?></td>
+                        <td><?= htmlspecialchars($estudante->curso) ?></td>
+                        <td><?= htmlspecialchars($estudante->ano_ingresso) ?></td>
+                        <td>
+                            <a href="../router.php?rota=confirmarDeletar&matricula=<?= $estudante->matricula ?>" 
+                               onclick="return confirm('Tem certeza que deseja excluir este estudante?');">
+                               Excluir
+                            </a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+        <?php else: ?>
+            <p><?= $nomePesquisa ? 'Nenhum estudante encontrado.' : 'Nenhum estudante cadastrado.' ?></p>
+        <?php endif;
         
-        echo json_encode(['success' => true, 'html' => $html]);
+        echo ob_get_clean();
+        exit;
+        
     } catch(Exception $e) {
-        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        http_response_code(500);
+        echo "Erro no servidor: " . $e->getMessage();
+        exit;
     }
-    exit;
 }
+
+// Processamento normal para carregamento inicial
+$nomePesquisa = $_GET['nome'] ?? '';
+$estudantes = $nomePesquisa ? $controller->buscarPorNome($nomePesquisa) : $controller->listar();
 ?>
+
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Estudantes</title>
+    <style>
+        .search-container { margin: 20px 0; }
+        #searchInput { padding: 8px; width: 300px; }
+        #loading { display: none; color: #666; margin-left: 10px; }
+        #error { color: red; margin-top: 10px; display: none; }
+        table { margin-top: 20px; border-collapse: collapse; width: 100%; }
+        th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+        tr:hover { background-color: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h2>Lista de Estudantes</h2>
+    
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Digite para pesquisar..." 
+               value="<?= htmlspecialchars($nomePesquisa) ?>" autocomplete="off">
+        <span id="loading">Carregando...</span>
+        <div id="error"></div>
+    </div>
+    
+    <div id="results">
+        <?php if (!empty($estudantes)): ?>
+            <table>
+                <tr>
+                    <th>Matrícula</th>
+                    <th>Nome</th>
+                    <th>Curso</th>
+                    <th>Ano de Ingresso</th>
+                    <th>Ações</th>
+                </tr>
+                <?php foreach ($estudantes as $estudante): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($estudante->matricula) ?></td>
+                        <td><?= htmlspecialchars($estudante->nome) ?></td>
+                        <td><?= htmlspecialchars($estudante->curso) ?></td>
+                        <td><?= htmlspecialchars($estudante->ano_ingresso) ?></td>
+                        <td>
+                            <a href="../router.php?rota=confirmarDeletar&matricula=<?= $estudante->matricula ?>" 
+                               onclick="return confirm('Tem certeza que deseja excluir este estudante?');">
+                               Excluir
+                            </a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </table>
+        <?php else: ?>
+            <p><?= $nomePesquisa ? 'Nenhum estudante encontrado.' : 'Nenhum estudante cadastrado.' ?></p>
+        <?php endif; ?>
+    </div>
+    
+    <button onclick="window.location.href='../index.php'">Voltar ao Menu</button>
+
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const resultsDiv = document.getElementById('results');
+    const errorDiv = document.getElementById('error');
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.trim();
+        
+        fetch(`router.php?rota=buscar_ajax&nome=${encodeURIComponent(searchTerm)}`, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Erro na rede');
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                resultsDiv.innerHTML = data.html;
+                errorDiv.style.display = 'none';
+            } else {
+                throw new Error(data.error || 'Erro desconhecido');
+            }
+        })
+        .catch(error => {
+            errorDiv.textContent = error.message;
+            errorDiv.style.display = 'block';
+            console.error('Erro:', error);
+        });
+    });
+});
+</script>
+
+</body>
+</html>
