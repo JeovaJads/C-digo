@@ -40,10 +40,38 @@ switch($rota) {
     case 'deletar':
         require_once 'views/listarDeletar.php';
         break;   
-    case 'buscarSugestoes':
-        header('Content-Type: application/json');
-        echo json_encode($controller->buscarSugestoesNome($_GET['term']));
-        exit;
-        break;
+    // Adicione este caso no switch existente
+case 'buscar_ajax':
+    header('Content-Type: application/json');
+    try {
+        $nomePesquisa = $_GET['nome'] ?? '';
+        $estudantes = $controller->buscarPorNome($nomePesquisa);
+        
+        $html = '';
+        if (!empty($estudantes)) {
+            $html .= '<table border="1"><tr><th>Matrícula</th><th>Nome</th><th>Curso</th><th>Ano Ingresso</th><th>Ações</th></tr>';
+            foreach ($estudantes as $estudante) {
+                $html .= sprintf(
+                    '<tr>
+                        <td>%s</td><td>%s</td><td>%s</td><td>%s</td>
+                        <td><a href="router.php?rota=confirmarDeletar&matricula=%s" onclick="return confirm(\'Tem certeza?\')">Excluir</a></td>
+                    </tr>',
+                    htmlspecialchars($estudante->matricula),
+                    htmlspecialchars($estudante->nome),
+                    htmlspecialchars($estudante->curso),
+                    htmlspecialchars($estudante->ano_ingresso),
+                    $estudante->matricula
+                );
+            }
+            $html .= '</table>';
+        } else {
+            $html = '<p>'.($nomePesquisa ? 'Nenhum estudante encontrado.' : 'Nenhum estudante cadastrado.').'</p>';
+        }
+        
+        echo json_encode(['success' => true, 'html' => $html]);
+    } catch(Exception $e) {
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+    }
+    exit;
 }
 ?>
