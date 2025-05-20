@@ -11,6 +11,10 @@ class Model {
         }
     }
 
+    public function getConnection() {
+        return $this->connect;
+    }
+
 
 
     protected $fillable = ['matricula', 'nome', 'curso', 'ano_ingresso'];
@@ -20,13 +24,11 @@ class Model {
         return $this->hasOne(Estudante::class, 'id_estudante'); // simula relação com responsável
     }
 
-    public function salvarComResponsavel($data)
-{
+    public function salvarComResponsavel($data) {
     try {
-        // Inicia transação
+
         $this->connect->beginTransaction();
 
-        // Inserir estudante
         $stmt = $this->connect->prepare("
             INSERT INTO estudantes (matricula, nome, curso, ano_ingresso)
             VALUES (:matricula, :nome, :curso, :ano_ingresso)
@@ -40,27 +42,28 @@ class Model {
 
         $estudanteId = $this->connect->lastInsertId();
 
-        // Inserir responsável
-        $stmt2 = $this->connect->prepare("
-    INSERT INTO responsaveis (id_estudante, nome, contato, parentesco)
-    VALUES (:id_estudante, :nome, :contato, :parentesco)
-");
+        foreach ($data['responsaveis'] as $responsavel) {
+            if (!empty($responsavel['nome'])) {
+                $stmt = $this->connect->prepare("
+                    INSERT INTO responsaveis (id_estudante, nome, contato, parentesco)
+                    VALUES (:id_estudante, :nome, :contato, :parentesco)
+                ");
+                $stmt->execute([
+                    ':id_estudante' => $estudanteId,
+                    ':nome' => $responsavel['nome'],
+                    ':contato' => $responsavel['contato'],
+                    ':parentesco' => $responsavel['parentesco'] ?? null
+                ]);
+            }
+        }
 
-$stmt2->execute([
-    ':id_estudante' => $estudanteId,
-    ':nome' => $data['responsavel_nome'],
-    ':contato' => $data['responsavel_contato'],
-    ':parentesco' => $data['responsavel_parentesco']
-]);
-
-        // Commit
         $this->connect->commit();
         return true;
-
     } catch (PDOException $e) {
         $this->connect->rollBack();
-        die("Erro ao salvar dados: " . $e->getMessage());
-    }}
+        throw $e;
+    }
+}
 
     
 
