@@ -257,13 +257,24 @@
 <script>
 $(document).ready(function() {
     let responsavelCount = 1;
+    const maxResponsaveis = 4;
+    const addButton = $('#add-responsavel');
+    
+    function updateAddButton() {
+        if (responsavelCount >= maxResponsaveis) {
+            addButton.prop('disabled', true);
+            addButton.css('opacity', '0.6');
+            addButton.css('cursor', 'not-allowed');
+        } else {
+            addButton.prop('disabled', false);
+            addButton.css('opacity', '1');
+            addButton.css('cursor', 'pointer');
+        }
+    }
     
     $('#add-responsavel').click(function() {
-        if(responsavelCount >= 5) {
-            alert('Máximo de 5 responsáveis permitidos!');
-            return;
-        }
-
+        if(responsavelCount >= maxResponsaveis) return;
+        
         const newGroup = `
             <div class="responsavel-group">
                 <div class="input-group">
@@ -286,6 +297,7 @@ $(document).ready(function() {
         
         $('#responsaveis-container').append(newGroup);
         responsavelCount++;
+        updateAddButton();
     });
 
     $(document).on('click', '.remove-responsavel', function() {
@@ -299,10 +311,14 @@ $(document).ready(function() {
                 });
             });
             responsavelCount = $('.responsavel-group').length;
+            updateAddButton();
         } else {
             alert('É necessário ter pelo menos um responsável!');
         }
     });
+    
+    // Atualiza o botão no carregamento inicial
+    updateAddButton();
 });
 </script>
 
