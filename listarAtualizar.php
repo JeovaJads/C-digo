@@ -27,10 +27,9 @@ if(isset($_GET['ajax_search'])) {
                         <td><?= htmlspecialchars($estudante->curso) ?></td>
                         <td><?= htmlspecialchars($estudante->ano_ingresso) ?></td>
                         <td>
-                            <a href="../router.php?rota=confirmarDeletar&matricula=<?= $estudante->matricula ?>" 
-                               onclick="return confirm('Tem certeza que deseja excluir este estudante?');">
-                               Excluir
-                            </a>
+                            <a href="router.php?rota=formAtualizar&matricula=<?= $estudante->matricula ?>">
+                           Atualizar
+                        </a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -107,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
     searchInput.addEventListener('input', function() {
         const searchTerm = this.value.trim();
         
-        fetch(`router.php?rota=buscar_ajax&nome=${encodeURIComponent(searchTerm)}`, {
+        fetch(`router.php?rota=buscar_Atualizar&nome=${encodeURIComponent(searchTerm)}`, {
             headers: {
                 'Accept': 'application/json'
             }
