@@ -131,6 +131,50 @@ class Model {
             die("Erro ao buscar estudantes: " . $e->getMessage());
         }
     }
+
+    public function buscarResponsaveis($idEstudante) {
+        try {
+            $stmt = $this->connect->prepare("SELECT * FROM responsaveis WHERE id_estudante = :id_estudante");
+            $stmt->bindParam(':id_estudante', $idEstudante, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_OBJ);
+        } catch (PDOException $e) {
+            die("Erro ao buscar responsáveis: " . $e->getMessage());
+        }
+    }
+
+    public function atualizarResponsaveis($idEstudante, $responsaveis) {
+        try {
+            $this->connect->beginTransaction();
+            
+            // Primeiro remove os responsáveis existentes
+            $stmtDelete = $this->connect->prepare("DELETE FROM responsaveis WHERE id_estudante = :id_estudante");
+            $stmtDelete->bindParam(':id_estudante', $idEstudante, PDO::PARAM_INT);
+            $stmtDelete->execute();
+            
+            // Depois insere os novos
+            foreach ($responsaveis as $responsavel) {
+                if (!empty($responsavel['nome'])) {
+                    $stmtInsert = $this->connect->prepare("
+                        INSERT INTO responsaveis (id_estudante, nome, contato, parentesco)
+                        VALUES (:id_estudante, :nome, :contato, :parentesco)
+                    ");
+                    $stmtInsert->execute([
+                        ':id_estudante' => $idEstudante,
+                        ':nome' => $responsavel['nome'],
+                        ':contato' => $responsavel['contato'],
+                        ':parentesco' => $responsavel['parentesco'] ?? null
+                    ]);
+                }
+            }
+            
+            $this->connect->commit();
+            return true;
+        } catch (PDOException $e) {
+            $this->connect->rollBack();
+            throw $e;
+        }
+    }
 }
 
 ?>
