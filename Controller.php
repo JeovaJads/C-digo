@@ -52,21 +52,40 @@ public function buscarPorMatricula($matricula) {
     return $this->model->buscarPorMatricula($matricula);
 }
 
+// Modifique o método atualizar()
 public function atualizar() {
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $matricula = $_POST["matricula"];
         $nome = $_POST["nome"];
         $curso = $_POST["curso"];
         $ano_ingresso = $_POST["ano_ingresso"];
+        $responsaveis = $_POST["responsaveis"] ?? [];
 
-        $this->model->atualizarEstudante($matricula, $nome, $curso, $ano_ingresso);
+        try {
+            // Primeiro atualiza o estudante
+            $this->model->atualizarEstudante($matricula, $nome, $curso, $ano_ingresso);
+            
+            // Busca o ID do estudante
+            $estudante = $this->model->buscarPorMatricula($matricula);
+            
+            // Atualiza os responsáveis
+            if ($estudante) {
+                $this->model->atualizarResponsaveis($estudante->id, $responsaveis);
+            }
 
-        header("Location: router.php?rota=listar&atualizado=1");
-        exit;
+            header("Location: router.php?rota=listar&atualizado=1");
+            exit;
+        } catch (Exception $e) {
+            die("Erro ao atualizar: " . $e->getMessage());
+        }
     }
 }
-public function buscarPorNome($nome) {
-    return $this->model->buscarEstudantesPorNome($nome);
+public function buscarDadosCompletos($matricula) {
+    $estudante = $this->model->buscarPorMatricula($matricula);
+    if ($estudante) {
+        $estudante->responsaveis = $this->model->buscarResponsaveis($estudante->id);
+    }
+    return $estudante;
 }
 
 }
