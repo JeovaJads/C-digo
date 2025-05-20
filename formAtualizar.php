@@ -107,46 +107,61 @@ if (!$estudante) {
     <button onclick="window.location.href='router.php?rota=atualizar'">Cancelar</button>
 
     <script>
-    $(document).ready(function() {
-        let responsavelCount = <?= count($estudante->responsaveis) ?>;
+$(document).ready(function() {
+    let responsavelCount = <?= count($estudante->responsaveis) ?>;
+    const maxResponsaveis = 4;
+    const addButton = $('#add-responsavel');
+    
+    function updateAddButton() {
+        if (responsavelCount >= maxResponsaveis) {
+            addButton.prop('disabled', true);
+            addButton.css('opacity', '0.6');
+            addButton.css('cursor', 'not-allowed');
+        } else {
+            addButton.prop('disabled', false);
+            addButton.css('opacity', '1');
+            addButton.css('cursor', 'pointer');
+        }
+    }
+    
+    $('#add-responsavel').click(function() {
+        if(responsavelCount >= maxResponsaveis) return;
         
-        $('#add-responsavel').click(function() {
-            if(responsavelCount >= 5) {
-                alert('Máximo de 5 responsáveis permitidos!');
-                return;
-            }
-
-            const newGroup = `
-                <div class="responsavel-group">
-                    <input type="text" name="responsaveis[${responsavelCount}][nome]" placeholder="Nome do Responsável" required>
-                    <input type="text" name="responsaveis[${responsavelCount}][contato]" placeholder="Contato" required>
-                    <input type="text" name="responsaveis[${responsavelCount}][parentesco]" placeholder="Parentesco">
-                    <button type="button" class="remove-responsavel">
-                        <i class="fas fa-times"></i> Remover
-                    </button>
-                </div>
-            `;
-            
-            $('#responsaveis-container').append(newGroup);
-            responsavelCount++;
-        });
-
-        $(document).on('click', '.remove-responsavel', function() {
-            if($('.responsavel-group').length > 1) {
-                $(this).parent().remove();
-                // Reindexa os grupos
-                $('.responsavel-group').each(function(index) {
-                    $(this).find('input').each(function() {
-                        const name = $(this).attr('name').replace(/responsaveis\[\d+\]/, `responsaveis[${index}]`);
-                        $(this).attr('name', name);
-                    });
-                });
-                responsavelCount = $('.responsavel-group').length;
-            } else {
-                alert('É necessário ter pelo menos um responsável!');
-            }
-        });
+        const newGroup = `
+            <div class="responsavel-group">
+                <input type="text" name="responsaveis[${responsavelCount}][nome]" placeholder="Nome do Responsável" required>
+                <input type="text" name="responsaveis[${responsavelCount}][contato]" placeholder="Contato" required>
+                <input type="text" name="responsaveis[${responsavelCount}][parentesco]" placeholder="Parentesco">
+                <button type="button" class="remove-responsavel">
+                    <i class="fas fa-times"></i> Remover
+                </button>
+            </div>
+        `;
+        
+        $('#responsaveis-container').append(newGroup);
+        responsavelCount++;
+        updateAddButton();
     });
-    </script>
+
+    $(document).on('click', '.remove-responsavel', function() {
+        if($('.responsavel-group').length > 1) {
+            $(this).parent().remove();
+            // Reindexa os grupos
+            $('.responsavel-group').each(function(index) {
+                $(this).find('input').each(function() {
+                    const name = $(this).attr('name').replace(/responsaveis\[\d+\]/, `responsaveis[${index}]`);
+                    $(this).attr('name', name);
+                });
+            });
+            responsavelCount = $('.responsavel-group').length;
+            updateAddButton();
+        } else {
+            alert('É necessário ter pelo menos um responsável!');
+        }
+    });
+    
+    updateAddButton();
+});
+</script>
 </body>
 </html>
