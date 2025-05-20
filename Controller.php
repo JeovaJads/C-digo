@@ -14,21 +14,25 @@ public function create()
     return view('estudante.form');
 }
 
-public function cadastrar($data)
-{
+public function cadastrar($data) {
     // Validação simples
-    if (
-        empty($data['matricula']) || empty($data['nome']) || empty($data['curso']) ||
-        empty($data['ano_ingresso']) || empty($data['responsavel_nome']) ||
-        empty($data['responsavel_contato']) || empty($data['responsavel_parentesco'])
+    if (empty($data['matricula']) || empty($data['nome']) || 
+        empty($data['curso']) || empty($data['ano_ingresso']) ||
+        empty($data['responsaveis'][0]['nome']) || 
+        empty($data['responsaveis'][0]['contato'])
     ) {
-        die("Todos os campos são obrigatórios.");
+        die("Todos os campos obrigatórios devem ser preenchidos.");
     }
 
-    $this->model->salvarComResponsavel($data);
+    try {
+        // Use o método do Model em vez de acessar $connect diretamente
+        $this->model->salvarComResponsavel($data);
 
-    header("Location: router.php?rota=cadastrar&sucesso=1");
-    exit;
+        header("Location: router.php?rota=cadastrar&sucesso=1");
+        exit;
+    } catch (Exception $e) {
+        die("Erro ao cadastrar: " . $e->getMessage());
+    }
 }
 
 public function listar() {
@@ -61,20 +65,9 @@ public function atualizar() {
         exit;
     }
 }
-
-// Adicione este método na classe Controller
 public function buscarPorNome($nome) {
     return $this->model->buscarEstudantesPorNome($nome);
 }
-
-public function buscarSugestoes($termo) {
-    return $this->model->buscarSugestoesNome($termo);
-}
-
-public function autocomplete($termo) {
-    return $this->model->buscarSugestoesNome($termo);
-}
-
 
 }
 ?>
